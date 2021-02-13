@@ -1,0 +1,131 @@
+//#include <Servo.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <ArduinoJson.h>
+
+const char* ssid = "OnePlus 7";
+const char* password = "vip_acces";
+
+
+int LED1 = D0;
+int LED2 = D1;
+int LED3 = D2;
+int LED4 = D3;
+int servoPin = 5; 
+int currentLed = 1;
+int nbPassage = rand()%20+20;
+int mod = 0; //debut de partie
+int nbPlayers = 4;
+int timer = 30000; //30s to answer
+    
+int randDegree;
+bool isDareState;
+
+
+
+//Servo Servo1; 
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("début");
+
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(1000);
+    Serial.println("Connecting...");
+  }
+
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
+  pinMode(LED3, OUTPUT);
+  pinMode(LED4, OUTPUT);
+
+//  Servo1.attach(servoPin);
+  mod=1; //lancer la roue
+}
+
+void lightOnOff(int led){
+  digitalWrite(led, HIGH);
+  delay(100);
+  digitalWrite(led, LOW);
+}
+
+void spinWheel(){
+    switch(currentLed % 4 + 1) {
+      case 1: lightOnOff(LED1);
+        break;
+      case 2:lightOnOff(LED2);
+        break;
+      case 3:lightOnOff(LED3);
+        break;
+      case 4:lightOnOff(LED4);
+        break;
+      default:
+        break;
+    }
+}
+
+void showPlayer(int led){
+    digitalWrite(led, HIGH);
+}
+
+void loop() {
+
+  if (WiFi.status() == WL_CONNECTED) 
+  {
+
+
+
+HTTPClient http;
+
+// Send request
+http.useHTTP10(true);
+http.begin("https://thuth-dare.herokuapp.com/api/dare");
+http.GET();
+
+// Parse response
+DynamicJsonDocument doc(2048);
+deserializeJson(doc, http.getStream());
+
+// Read values
+Serial.println(doc["response"].as<char*>());
+
+// Disconnect
+http.end();
+
+/*
+    //
+    HTTPClient http; //Object of class HTTPClient
+    http.begin("https://thuth-dare.herokuapp.com/api/dare");
+    int httpCode = http.GET();
+    http.useHTTP10(true);
+     //const size_t bufferSize = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(8) + 370;
+      DynamicJsonDocument jsonBuffer(2048);
+      deserializeJson(jsonBuffer, http.getStream());
+     JsonObject json = jsonBuffer.to<JsonObject>();
+     const char* response = json["response"].as<char*>();
+
+      
+     Serial.print("Name:");
+     Serial.print(response);*/
+     http.end(); //Close connection
+  }
+    //randDegrees = random(180);
+    // Making the Led blinks to display the current player
+    if (mod == 1) {
+      spinWheel();
+      nbPassage  -= 1;
+      currentLed += 1;
+    }
+    Serial.println("début");
+    Serial.println(nbPassage);
+    if(mod == 2) showPlayer(LED2);
+
+    if (nbPassage <= 0) mod == 2; //montrer le joueur choisi
+
+    //Servo1.write(randDegree); 
+    //isDareState = randDegree <= 90 ? true : false;
+}
